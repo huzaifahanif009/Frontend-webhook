@@ -1,0 +1,171 @@
+<div class="flex min-h-screen w-full bg-white">
+  <!-- Branding panel — hidden on small screens -->
+  <div class="brand-panel relative hidden w-[46%] flex-col justify-between overflow-hidden p-12 lg:flex">
+    <div class="brand-glow" aria-hidden="true"></div>
+    <div class="brand-dots" aria-hidden="true"></div>
+
+    <div class="relative z-10 flex items-center gap-3">
+      <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
+        <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5 text-white">
+          <path
+            d="M12 7v5l3 2"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8" />
+        </svg>
+      </div>
+      <span class="text-[15px] font-semibold tracking-tight text-white">ADMS</span>
+    </div>
+
+    <div class="relative z-10 max-w-md">
+      <h1 class="text-[28px] font-semibold leading-tight tracking-tight text-white">
+        Attendance, tracked in real time.
+      </h1>
+      <p class="mt-3 text-[14.5px] leading-relaxed text-white/60">
+        A single place to watch every biometric device, review attendance as it happens, and keep
+        your ERP perfectly in sync.
+      </p>
+
+      <ul class="mt-9 space-y-4">
+        <li class="flex items-start gap-3">
+          <span class="brand-feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4">
+              <path
+                d="M4 12.5l5 5L20 7"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <span class="text-[13.5px] text-white/75">Live device status &amp; connectivity health</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="brand-feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4">
+              <path
+                d="M4 12.5l5 5L20 7"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <span class="text-[13.5px] text-white/75">Automatic ERP attendance synchronization</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="brand-feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4">
+              <path
+                d="M4 12.5l5 5L20 7"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <span class="text-[13.5px] text-white/75">Full audit trail for every raw device push</span>
+        </li>
+      </ul>
+    </div>
+
+    <p class="relative z-10 text-[12px] text-white/35">© {{ currentYear }} ADMS Attendance Platform</p>
+  </div>
+
+  <!-- Form panel -->
+  <div class="flex flex-1 items-center justify-center px-6 py-12 sm:px-10">
+    <form class="w-full max-w-[380px]" (ngSubmit)="submit()">
+      <div class="mb-9 flex items-center gap-3 lg:hidden">
+        <div
+          class="flex h-10 w-10 items-center justify-center rounded-xl"
+          style="background: var(--primary)"
+        >
+          <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5 text-white">
+            <path
+              d="M12 7v5l3 2"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8" />
+          </svg>
+        </div>
+        <span class="text-[15px] font-semibold tracking-tight text-slate-900">ADMS</span>
+      </div>
+
+      <h2 class="text-[22px] font-semibold tracking-tight text-slate-900">Welcome back</h2>
+      <p class="mt-1.5 text-[13.5px] text-slate-500">Sign in to open the attendance dashboard.</p>
+
+      <div class="mt-8">
+        <label for="password" class="mb-1.5 block text-[12.5px] font-medium text-slate-700"
+          >Password</label
+        >
+        <div class="relative">
+          <input
+            id="password"
+            class="login-input"
+            [type]="showPassword() ? 'text' : 'password'"
+            autocomplete="current-password"
+            [ngModel]="password()"
+            (ngModelChange)="password.set($event)"
+            name="password"
+            placeholder="Enter your password"
+            autofocus
+          />
+          <button
+            type="button"
+            class="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-400 transition-colors hover:text-slate-600"
+            (click)="toggleShowPassword()"
+            [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+          >
+            @if (showPassword()) {
+              <svg viewBox="0 0 24 24" fill="none" class="h-[18px] w-[18px]">
+                <path
+                  d="M3 3l18 18M10.6 10.7a2.6 2.6 0 003.7 3.6M9.4 5.5A10.6 10.6 0 0112 5.2c5 0 8.8 3.3 10.3 6.8-.6 1.4-1.6 2.9-2.9 4.1M6.2 6.9C4.1 8.3 2.5 10.2 1.7 12c1.5 3.5 5.3 6.8 10.3 6.8 1.3 0 2.6-.2 3.7-.7"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            } @else {
+              <svg viewBox="0 0 24 24" fill="none" class="h-[18px] w-[18px]">
+                <path
+                  d="M1.7 12C3.2 8.5 7 5.2 12 5.2S20.8 8.5 22.3 12c-1.5 3.5-5.3 6.8-10.3 6.8S3.2 15.5 1.7 12z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                />
+                <circle cx="12" cy="12" r="2.7" stroke="currentColor" stroke-width="1.6" />
+              </svg>
+            }
+          </button>
+        </div>
+      </div>
+
+      @if (error()) {
+        <div class="login-alert" role="alert">
+          <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4 shrink-0">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
+            <path d="M12 8v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            <circle cx="12" cy="16" r="0.9" fill="currentColor" />
+          </svg>
+          <span>{{ error() }}</span>
+        </div>
+      }
+
+      <button type="submit" class="login-submit">Sign in</button>
+
+      <p class="mt-6 text-center text-[12px] text-slate-400">
+        Protected access · ADMS Attendance Platform
+      </p>
+    </form>
+  </div>
+</div>

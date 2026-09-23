@@ -1,0 +1,132 @@
+.btn-sync-on {
+  background: var(--success-soft);
+  border-color: var(--success-soft);
+  color: var(--success);
+}
+
+.btn-sync-on:hover:not(:disabled) {
+  background: var(--success);
+  color: #fff;
+}
+
+.btn-sync-off {
+  background: var(--danger-soft);
+  border-color: var(--danger-soft);
+  color: var(--danger);
+}
+
+.btn-sync-off:hover:not(:disabled) {
+  background: var(--danger);
+  color: #fff;
+}
+
+/* Keeps the ERP sync action visible on the right edge while the (wide) table scrolls
+   horizontally, instead of it disappearing off-screen. */
+.sticky-col {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: var(--surface);
+  box-shadow: -4px 0 6px -4px rgba(16, 24, 40, 0.15);
+}
+
+thead .sticky-col {
+  background: #fafbfd;
+  z-index: 3;
+}
+
+tbody tr:hover .sticky-col {
+  background: #fafbfd;
+}
+
+.recovery-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 12, 24, 0.45);
+  padding: 20px;
+}
+
+.recovery-panel {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 48px rgba(10, 12, 24, 0.25);
+  padding: 22px 24px;
+
+  h3 {
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+}
+
+.recovery-hint {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.recovery-fields {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+
+  .field {
+    flex: 1;
+  }
+}
+
+.recovery-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.recovery-history {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.recovery-history-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.recovery-history-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.recovery-history-serial {
+  font-weight: 600;
+}
+
+.recovery-history-range {
+  color: var(--text-muted);
+}
+
+.recovery-history-message {
+  color: var(--success);
+}

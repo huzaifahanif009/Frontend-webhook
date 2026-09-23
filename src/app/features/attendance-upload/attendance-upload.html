@@ -1,0 +1,160 @@
+<div class="page">
+  <div class="page-header">
+    <div class="page-heading">
+      <span class="page-icon tone-warning">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M12 4v11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <path d="M7 9.5L12 4l5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M4.5 16.5v2.3a1.7 1.7 0 001.7 1.7h11.6a1.7 1.7 0 001.7-1.7v-2.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </span>
+      <div>
+        <h1>Bulk Attendance Upload</h1>
+        <p class="page-subtitle">
+          Recover attendance that never reached this server (e.g. during an outage) by uploading an
+          export from the device.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card upload-card">
+    <p class="upload-hint">
+      Upload a raw <strong>.dat</strong>/<strong>.txt</strong> ATTLOG backup exported from a
+      device's USB backup, or a <strong>.csv</strong> with a header row of
+      <code>Pin, Timestamp, Status, Verify, Name</code> (Status, Verify and Name are optional).
+      Nothing is imported until you review the list below and confirm.
+    </p>
+
+    <div class="upload-controls">
+      <div class="field upload-serial-field">
+        <label for="uploadSerial">Source device serial</label>
+        <input
+          id="uploadSerial"
+          class="input"
+          type="text"
+          list="uploadDeviceList"
+          placeholder="e.g. JYM6253800001"
+          [ngModel]="uploadSerial()"
+          (ngModelChange)="uploadSerial.set($event)"
+          name="uploadSerial"
+        />
+        <datalist id="uploadDeviceList">
+          @for (device of uploadDevices(); track device.serialNumber) {
+            <option [value]="device.serialNumber"></option>
+          }
+        </datalist>
+      </div>
+
+      <label class="btn upload-choose">
+        Choose file…
+        <input type="file" accept=".dat,.txt,.csv" (change)="onFileSelected($event)" hidden />
+      </label>
+      @if (fileName()) {
+        <span class="upload-filename">{{ fileName() }}</span>
+      }
+      @if (previewRows().length > 0 || parseError()) {
+        <button type="button" class="btn btn-sm" (click)="clearUpload()">Clear</button>
+      }
+    </div>
+
+    @if (parsing()) {
+      <p class="upload-status">Reading file…</p>
+    }
+    @if (parseError()) {
+      <p class="error-text">{{ parseError() }}</p>
+    }
+
+    @if (previewRows().length > 0) {
+      <div class="upload-summary">
+        <span>{{ includedCount }} of {{ previewRows().length }} row(s) selected</span>
+        <button type="button" class="btn btn-sm" (click)="toggleAll()">
+          {{ allIncluded ? 'Deselect all' : 'Select all' }}
+        </button>
+        <label class="upload-erp-toggle">
+          <input type="checkbox" [ngModel]="syncToErp()" (ngModelChange)="syncToErp.set($event)" name="syncToErp" />
+          Sync these to ERP immediately (unchecked = backfilled quietly, resync later if needed)
+        </label>
+        @if (!showImportGate()) {
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            [disabled]="importing() || includedCount === 0"
+            (click)="requestImport()"
+          >
+            {{ importing() ? 'Importing…' : 'Import ' + includedCount + ' row(s)' }}
+          </button>
+        }
+      </div>
+
+      @if (showImportGate()) {
+        <div class="upload-gate">
+          <app-action-password-gate
+            title="Import historical attendance"
+            description="This writes new attendance rows for {{ uploadSerial() }} — enter the password to continue."
+            (verified)="confirmImport()"
+          />
+          <button type="button" class="btn btn-sm" (click)="cancelImport()">Cancel</button>
+        </div>
+      }
+
+      @if (importSummary(); as summary) {
+        <p class="success-text">
+          Imported {{ summary.succeeded }} row(s){{ summary.skipped > 0 ? ', ' + summary.skipped + ' already existed (skipped)' : '' }}{{ summary.failed > 0 ? ', ' + summary.failed + ' failed' : '' }}.
+        </p>
+      }
+
+      <div class="table-wrap upload-preview-table">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th><input type="checkbox" [checked]="allIncluded" (change)="toggleAll()" /></th>
+              <th>#</th>
+              <th>PIN</th>
+              <th>Name</th>
+              <th>Timestamp (device local)</th>
+              <th>Status</th>
+              <th>Verify</th>
+              <th>Notes</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of previewRows(); track $index; let i = $index) {
+              <tr [class.row-excluded]="!row.included">
+                <td><input type="checkbox" [checked]="row.included" (change)="toggleRow(row)" /></td>
+                <td>{{ i + 1 }}</td>
+                <td><input class="input input-sm" type="text" [(ngModel)]="row.pin" [name]="'pin' + i" /></td>
+                <td><input class="input input-sm" type="text" [(ngModel)]="row.name" [name]="'name' + i" /></td>
+                <td><input class="input input-sm" type="text" [(ngModel)]="row.timestamp" [name]="'ts' + i" /></td>
+                <td><input class="input input-sm status-col" type="text" [(ngModel)]="row.statusCode" [name]="'status' + i" /></td>
+                <td><input class="input input-sm status-col" type="text" [(ngModel)]="row.verifyCode" [name]="'verify' + i" /></td>
+                <td>
+                  @if (row.isDuplicate) {
+                    <span class="badge badge-danger">Already exists</span>
+                  }
+                  @if (row.warning) {
+                    <span class="badge badge-warning" [title]="row.warning">Needs review</span>
+                  }
+                </td>
+                <td>
+                  @if (row.result) {
+                    @if (row.result.success) {
+                      <span class="badge badge-success" [title]="row.result.message">Imported</span>
+                    } @else if (row.result.skipped) {
+                      <span class="badge badge-muted" [title]="row.result.message">Skipped</span>
+                    } @else {
+                      <span class="badge badge-danger" [title]="row.result.message">Failed</span>
+                    }
+                  } @else {
+                    —
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

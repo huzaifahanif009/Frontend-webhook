@@ -1,0 +1,276 @@
+<div class="page">
+  <div class="page-header">
+    <div class="page-heading">
+      <span class="page-icon tone-primary">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M4 5.2c2-1 5-1 8 0 3-1 6-1 8 0v13.6c-2-1-5-1-8 0-3-1-6-1-8 0V5.2z"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linejoin="round"
+          />
+          <path d="M12 5.2v13.6" stroke="currentColor" stroke-width="1.6" />
+        </svg>
+      </span>
+      <div>
+        <h1>Setup Guide</h1>
+        <p class="page-subtitle">Device setup, service configuration, and troubleshooting reference</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="guide-layout">
+    <nav class="guide-toc">
+      <button type="button" (click)="scrollTo('overview')">Overview</button>
+      <button type="button" (click)="scrollTo('device-setup')">Device setup</button>
+      <button type="button" (click)="scrollTo('supported-machines')">Supported machines</button>
+      <button type="button" (click)="scrollTo('timezone')">Timezone &amp; time sync</button>
+      <button type="button" (click)="scrollTo('common-issues')">Common issues</button>
+      <button type="button" (click)="scrollTo('troubleshooting')">Troubleshooting steps</button>
+      <button type="button" (click)="scrollTo('logging')">Logging &amp; debugging</button>
+      <button type="button" (click)="scrollTo('verify-comm')">Verify communication</button>
+      <button type="button" (click)="scrollTo('verify-sync')">Verify attendance sync</button>
+      <button type="button" (click)="scrollTo('time-drift')">3-hour / 5-hour time issue</button>
+    </nav>
+
+    <div class="guide-content" (click)="onContentClick($event)">
+      <section class="card guide-section" id="overview">
+        <h2>Overview</h2>
+        <p>
+          This service receives attendance and device traffic from ZKTeco-family biometric machines and pushes
+          processed attendance rows into the ERP attendance tables.
+        </p>
+        <p>
+          Attendance flows in four steps: the device pushes a raw log → the service queues it for processing →
+          it's parsed into a normalized attendance row → an ERP sync worker periodically (or on demand) pushes
+          pending rows into the ERP database.
+        </p>
+      </section>
+
+      <section class="card guide-section" id="device-setup">
+        <h2>Device setup</h2>
+        <p>On the physical device, under <strong>Comm. → Ethernet / Cloud Server Setting (ADMS)</strong>:</p>
+        <ol>
+          <li>Enable <strong>Cloud Server Mode / ADMS</strong>.</li>
+          <li>Set <strong>Server Address</strong> to this service's host (domain or IP).</li>
+          <li>Set <strong>Server Port</strong> to the port this service listens on.</li>
+          <li>Leave <strong>Enable Domain Name</strong> off unless the server address is a hostname, not an IP.</li>
+          <li>Set the device's own <strong>Date/Time</strong> correctly and to the correct time zone
+            <em>before</em> connecting it — see <a href="#timezone">Timezone &amp; time sync</a>. This service
+            deliberately never sets or corrects a device's clock.</li>
+          <li>Save and let the device reconnect. It should appear on the <strong>Devices</strong> screen within
+            about 30–60 seconds (see <a href="#verify-comm">Verify communication</a>).</li>
+        </ol>
+        <div class="callout callout-info">
+          <strong>New device default</strong>
+          A newly-seen device starts with ERP syncing <em>off</em> by default. Attendance still gets recorded
+          locally, but nothing is pushed to ERP until someone explicitly turns on "Start syncing" for that device
+          on the Devices screen.
+        </div>
+      </section>
+
+      <section class="card guide-section" id="supported-machines">
+        <h2>Supported machine information</h2>
+        <p>
+          This service supports current ZKTeco ADMS push devices — the SpeedFace series, uFace 800, and most
+          current ZKTeco push-SDK machines — as well as older Nedo/FK-protocol machines.
+        </p>
+        <p>
+          A device's protocol is recorded automatically the first time it connects and shown on the Devices
+          screen.
+        </p>
+        <div class="callout callout-warning">
+          <strong>Connecting a Nedo/FK machine? Use its Cloud ID, not its printed serial number.</strong>
+          These older devices identify themselves with an auto-generated Cloud ID — a hex-style string the device
+          itself sends on every request — which is <em>not</em> the same as the serial number printed on the
+          device's label. If you register the printed serial number instead, the device will keep connecting
+          successfully but will never be recognized as the same machine, and its attendance won't be linked up.
+          Always use the Cloud ID when registering this type of device.
+        </div>
+      </section>
+
+      <section class="card guide-section" id="timezone">
+        <h2>Timezone / time synchronization requirements</h2>
+        <div class="callout callout-warning">
+          <strong>This service never sets a device's clock</strong>
+          After repeated confirmed cases of devices' clocks being corrupted by server-driven time updates, this
+          service was changed to never send or correct a device's time in any way. Each device must have its own
+          correct local date, time, and time zone configured directly on its own menu before (and independently
+          of) connecting to this service.
+        </div>
+        <p>
+          The service assumes every connected device's own clock is correctly set to the configured default time
+          zone (currently Pakistan Standard Time, UTC+5, no DST) — that assumption is only used to convert a
+          device's reported local timestamp for storage and ERP sync. If a device's own clock is wrong, its
+          attendance timestamps will be wrong even though nothing was sent to the device.
+        </p>
+        <h3>Checklist before connecting a device</h3>
+        <ul>
+          <li>Set the device's date, time, and time zone manually and correctly.</li>
+          <li>If the device has its own NTP / "auto sync time" option, review it — a device that keeps its own
+            time server in sync shouldn't conflict with this service (which never touches device time), but a
+            misconfigured one is a common source of drift independent of this server.</li>
+          <li>After connecting, periodically spot-check the device's own screen time against real time — see
+            <a href="#time-drift">3-hour / 5-hour time issue</a> for what to do if it drifts.</li>
+        </ul>
+      </section>
+
+      <section class="card guide-section" id="common-issues">
+        <h2>Common issues &amp; known causes</h2>
+        <table class="status-table">
+          <thead>
+            <tr><th>Symptom</th><th>Cause</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Device flickers online/offline on Devices screen</td>
+              <td>The "online" window was shorter than the device's normal check-in interval</td>
+              <td><span class="badge badge-success">Fixed</span></td>
+            </tr>
+            <tr>
+              <td>Attendance rows sat as "Pending" but "Sync attendance now" said nothing to sync</td>
+              <td>Rows were actually <em>skipped</em> (device sync disabled, offline-connectivity registration, not registered in ERP, or a mapping error) — the UI didn't distinguish that from genuinely pending</td>
+              <td><span class="badge badge-success">Fixed</span> — Attendance screen now shows Skipped/Failed with a reason column</td>
+            </tr>
+            <tr>
+              <td>New device's attendance never reaches ERP</td>
+              <td>New devices default to ERP syncing <em>off</em> until explicitly turned on from the Devices screen</td>
+              <td><span class="badge badge-muted">By design</span></td>
+            </tr>
+            <tr>
+              <td>Adding a device user fails</td>
+              <td>Duplicate PIN already exists on that device</td>
+              <td><span class="badge badge-muted">By design</span> — validated client + server side</td>
+            </tr>
+            <tr>
+              <td>Nedo/FK device connects fine but never shows up as recognized</td>
+              <td>Registered under its printed serial number instead of its Cloud ID — see <a href="#supported-machines">Supported machines</a></td>
+              <td><span class="badge badge-muted">By design</span> — re-register with the Cloud ID</td>
+            </tr>
+            <tr>
+              <td>Device clock drifts by ~3 or ~5 hours after connecting</td>
+              <td>Under investigation — see <a href="#time-drift">below</a></td>
+              <td><span class="badge badge-warning">Open</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card guide-section" id="troubleshooting">
+        <h2>Troubleshooting steps</h2>
+        <ol>
+          <li>Check the service's health check responds OK — confirms the service itself is up.</li>
+          <li>Check the <strong>Devices</strong> screen — is the device listed, and was it seen recently? If not,
+            it's a network/connectivity problem, not application logic (see
+            <a href="#verify-comm">Verify communication</a>).</li>
+          <li>Check that device's machinelog folder (<a href="#logging">below</a>) for the exact raw
+            request/response traffic.</li>
+          <li>Check the <strong>Raw Logs</strong> screen for parsing errors on that device's pushes.</li>
+          <li>Check the <strong>Attendance</strong> screen, filtered to that device, for the sync status and
+            reason columns — Synced / Pending / Skipped (with reason) / Failed.</li>
+          <li>If rows are stuck Skipped because syncing was off for that device, toggle "Start syncing" on the
+            Devices screen — this also re-queues its previously-skipped backlog automatically. If they're stuck
+            for any other reason (e.g. not registered in ERP), use the Re-sync screen once the underlying cause
+            is fixed.</li>
+        </ol>
+      </section>
+
+      <section class="card guide-section" id="logging">
+        <h2>Logging / debugging instructions</h2>
+        <p>
+          Every device-facing request and response is written to a plain text file under the service's
+          <code>machinelog/</code> folder, split per device so one machine's traffic never mixes with another's:
+        </p>
+        <pre class="code-block">machinelog/
+  &#123;SerialNumber or Cloud ID&#125;/
+    2026-08-17.log
+    2026-08-18.log
+  _unknown/
+    2026-08-17.log   ← requests where the device's identifier couldn't be resolved</pre>
+        <p>Each line is one of three kinds:</p>
+        <ul>
+          <li><code>REQ</code> — what the device sent.</li>
+          <li><code>RES</code> — what the service sent back, including status.</li>
+          <li><code>ERR</code> — an error the service hit while handling that request. The device usually still
+            gets a normal-looking reply (so it stays connected), so this is the only place that failure is
+            visible.</li>
+        </ul>
+        <p>
+          To investigate one machine end-to-end: open its folder, read chronologically — every REQ is immediately
+          followed by its RES (and an ERR line if something broke while producing that response).
+        </p>
+        <div class="callout callout-info">
+          <strong>This is separate from the database</strong>
+          machinelog is a plain-file debugging aid independent of the Raw Logs screen and the database — useful
+          for handing raw evidence to a device vendor, or reading directly on the server when the API/DB aren't
+          trusted to be behaving correctly.
+        </div>
+      </section>
+
+      <section class="card guide-section" id="verify-comm">
+        <h2>Steps to verify device-to-service communication</h2>
+        <ol>
+          <li>From a machine on the same network path as the device, confirm the configured port is reachable.</li>
+          <li>On the device menu, confirm the configured Server Address and Port match this service exactly.</li>
+          <li>Watch that device's machinelog file — you should see recurring check-in and data-push requests
+            roughly every 30 seconds once connected.</li>
+          <li>Confirm the device appears on the <strong>Devices</strong> screen with a recent last-seen time and
+            status "Online".</li>
+        </ol>
+      </section>
+
+      <section class="card guide-section" id="verify-sync">
+        <h2>Steps to verify attendance synchronization</h2>
+        <ol>
+          <li>Confirm syncing is turned on for the device (Devices screen → "Start syncing").</li>
+          <li>Take an attendance punch on the device.</li>
+          <li>Confirm it shows up on the <strong>Attendance</strong> screen for that serial/PIN with status
+            "Pending".</li>
+          <li>Click <strong>Sync attendance now</strong> (top of the Attendance screen), or wait for the
+            background sync interval.</li>
+          <li>Confirm the row's status changes to a timestamp (Synced). If it instead shows "Skipped" or "Failed",
+            check the reason column next to it.</li>
+          <li>The notification bell (top bar) shows live progress of any in-progress sync run.</li>
+        </ol>
+      </section>
+
+      <section class="card guide-section" id="time-drift">
+        <h2>Known issue: 3-hour / 5-hour time drift</h2>
+        <div class="callout callout-warning">
+          <strong>Status: open / under investigation</strong>
+          Some devices have been observed jumping several hours after connecting to this service. This has been
+          investigated repeatedly; several server-side causes have been found and removed, but the symptom has
+          been reported again since, so it is not considered fully resolved.
+        </div>
+        <h3>What has already been ruled out on the server side</h3>
+        <ul>
+          <li>The service used to answer the device's time-check request with its own clock — <strong>removed</strong>.
+            It no longer answers this request at all.</li>
+          <li>The service used to send timezone/sync-time fields in its normal options reply to devices —
+            <strong>removed</strong>. Confirmed via a direct device test (removing/re-adding the server URL) that
+            these fields were misapplied by at least one device model.</li>
+          <li>The service does not issue any time-set command to devices — every response observed in production
+            logs for the device's periodic check-in has been a plain acknowledgement or a queued, unrelated
+            user-management command.</li>
+        </ul>
+        <h3>Current leading hypothesis</h3>
+        <p>
+          With the above removed, the remaining explanation is device-side: the device's own firmware NTP
+          behaviour, tied to its Proxy Server / Web Server URL settings, appears to re-sync its clock independent
+          of anything this service sends. This has not yet been proven conclusively for every affected device or
+          model.
+        </p>
+        <h3>What to do if you see this</h3>
+        <ol>
+          <li>Note the exact device model, firmware version, and the time before/after the drift.</li>
+          <li>Check that device's machinelog folder for the time window the drift happened in — capture it before
+            it rotates out.</li>
+          <li>On the device itself, check whether it has its own NTP / "auto sync" setting under Date/Time or
+            Proxy Server / Comm settings, and note whether it's enabled.</li>
+          <li>Report the above details so the machinelog evidence can be reviewed — do not assume this is fixed
+            by anything already deployed.</li>
+        </ol>
+      </section>
+    </div>
+  </div>
+</div>

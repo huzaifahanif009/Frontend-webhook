@@ -1,0 +1,273 @@
+<div class="page">
+  <div class="page-header">
+    <div class="page-heading">
+      <span class="page-icon tone-warning">
+        <svg viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="8.3" r="3.3" stroke="currentColor" stroke-width="1.7" />
+          <path d="M4.8 19.5c1.1-3.4 3.9-5.3 7.2-5.3s6.1 1.9 7.2 5.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+        </svg>
+      </span>
+      <div>
+        <h1>Device Users</h1>
+        <p class="page-subtitle">
+          Add a user's PIN and name to an ADMS device. This creates the user profile only —
+          fingerprint/face enrollment still has to happen at the terminal itself.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="field">
+      <label for="device">Target machine</label>
+      <select
+        id="device"
+        class="select device-select"
+        [ngModel]="selectedSerial()"
+        (ngModelChange)="selectDevice($event)"
+      >
+        <option value="">
+          {{ loadingDevices() ? 'Loading devices…' : '— Select a device —' }}
+        </option>
+        @for (device of admsDevices; track device.serialNumber) {
+          <option [value]="device.serialNumber">
+            {{ device.serialNumber }}{{ device.clientName ? ' — ' + device.clientName : '' }}
+          </option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (!loadingDevices() && admsDevices.length === 0) {
+    <p class="empty-state">No ADMS-protocol devices found. FK devices aren't supported for this feature yet.</p>
+  }
+
+  @if (selectedSerial()) {
+    <div class="card add-user-card">
+      <h3>Add user to {{ selectedSerial() }}</h3>
+      <form class="add-user-form" (ngSubmit)="submit()">
+        <div class="field">
+          <label for="pin">PIN *</label>
+          <input
+            id="pin"
+            class="input"
+            type="text"
+            placeholder="e.g. 1034"
+            [ngModel]="pin()"
+            (ngModelChange)="pin.set($event)"
+            name="pin"
+          />
+        </div>
+
+        <div class="field">
+          <label for="name">Name *</label>
+          <input
+            id="name"
+            class="input"
+            type="text"
+            placeholder="e.g. John Doe"
+            [ngModel]="name()"
+            (ngModelChange)="name.set($event)"
+            name="name"
+          />
+        </div>
+
+        <div class="field">
+          <label for="privilege">Privilege</label>
+          <select
+            id="privilege"
+            class="select"
+            [ngModel]="privilege()"
+            (ngModelChange)="privilege.set($event)"
+            name="privilege"
+          >
+            <option value="0">Normal user</option>
+            <option value="14">Administrator</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="card">Card number</label>
+          <input
+            id="card"
+            class="input"
+            type="text"
+            placeholder="optional"
+            [ngModel]="card()"
+            (ngModelChange)="card.set($event)"
+            name="card"
+          />
+        </div>
+
+        <button type="submit" class="btn btn-primary" [disabled]="submitting()">
+          {{ submitting() ? 'Queuing…' : 'Add user' }}
+        </button>
+      </form>
+
+      @if (formError()) {
+        <p class="error-text">{{ formError() }}</p>
+      }
+      @if (formSuccess()) {
+        <p class="success-text">{{ formSuccess() }}</p>
+      }
+    </div>
+
+    <div class="card upload-card">
+      <h3>Bulk upload — {{ selectedSerial() }}</h3>
+      <p class="upload-hint">
+        Upload a <strong>.dat</strong> file exported from a device's own USB backup, or a
+        <strong>.csv</strong> file with a header row of <code>Pin, Name, Privilege, Card</code>
+        (Privilege and Card are optional). Nothing is imported until you review the list below and
+        click Import — this creates user profiles only, the same as the single form above;
+        fingerprint/face enrollment still has to happen at the terminal.
+      </p>
+
+      <div class="upload-controls">
+        <label class="btn upload-choose">
+          Choose file…
+          <input type="file" accept=".dat,.csv" (change)="onFileSelected($event)" hidden />
+        </label>
+        @if (fileName()) {
+          <span class="upload-filename">{{ fileName() }}</span>
+        }
+        @if (previewRows().length > 0 || parseError()) {
+          <button type="button" class="btn btn-sm" (click)="clearUpload()">Clear</button>
+        }
+      </div>
+
+      @if (parsing()) {
+        <p class="upload-status">Reading file…</p>
+      }
+      @if (parseError()) {
+        <p class="error-text">{{ parseError() }}</p>
+      }
+
+      @if (previewRows().length > 0) {
+        <div class="upload-summary">
+          <span>{{ includedCount }} of {{ previewRows().length }} row(s) selected</span>
+          <button type="button" class="btn btn-sm" (click)="toggleAll()">
+            {{ allIncluded ? 'Deselect all' : 'Select all' }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            [disabled]="importing() || includedCount === 0"
+            (click)="importSelected()"
+          >
+            {{ importing() ? 'Importing…' : 'Import ' + includedCount + ' user(s)' }}
+          </button>
+        </div>
+
+        @if (importSummary(); as summary) {
+          <p class="success-text">
+            Queued {{ summary.succeeded }} user(s){{ summary.failed > 0 ? ', ' + summary.failed + ' failed — see Result column below' : '' }}.
+          </p>
+        }
+
+        <div class="table-wrap upload-preview-table">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th><input type="checkbox" [checked]="allIncluded" (change)="toggleAll()" /></th>
+                <th>#</th>
+                <th>PIN</th>
+                <th>Name</th>
+                <th>Privilege</th>
+                <th>Card</th>
+                <th>Notes</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of previewRows(); track $index; let i = $index) {
+                <tr [class.row-excluded]="!row.included">
+                  <td><input type="checkbox" [checked]="row.included" (change)="toggleRow(row)" /></td>
+                  <td>{{ i + 1 }}</td>
+                  <td><input class="input input-sm" type="text" [(ngModel)]="row.pin" [name]="'pin' + i" /></td>
+                  <td><input class="input input-sm" type="text" [(ngModel)]="row.name" [name]="'name' + i" /></td>
+                  <td>
+                    <select class="select input-sm" [(ngModel)]="row.privilege" [name]="'priv' + i">
+                      <option value="0">Normal user</option>
+                      <option value="14">Administrator</option>
+                    </select>
+                  </td>
+                  <td><input class="input input-sm" type="text" [(ngModel)]="row.card" [name]="'card' + i" /></td>
+                  <td>
+                    @if (row.isDuplicate) {
+                      <span class="badge badge-danger">Already on device</span>
+                    }
+                    @if (row.warning) {
+                      <span class="badge badge-warning" [title]="row.warning">Needs review</span>
+                    }
+                  </td>
+                  <td>
+                    @if (row.result) {
+                      @if (row.result.success) {
+                        <span class="badge badge-success" [title]="row.result.message">Queued</span>
+                      } @else {
+                        <span class="badge badge-danger" [title]="row.result.message">Failed</span>
+                      }
+                    } @else {
+                      —
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+    <div class="table-wrap users-table">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>PIN</th>
+            <th>Name</th>
+            <th>Privilege</th>
+            <th>Card</th>
+            <th>Requested (UTC)</th>
+            <th>Status</th>
+            <th>Acknowledged (UTC)</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (loadingUsers() && users().length === 0) {
+            <tr>
+              <td colspan="8" class="empty-state">Loading…</td>
+            </tr>
+          } @else if (users().length === 0) {
+            <tr>
+              <td colspan="8" class="empty-state">No users have been requested for this device yet.</td>
+            </tr>
+          } @else {
+            @for (user of users(); track user.commandId; let i = $index) {
+              <tr>
+                <td>{{ i + 1 }}</td>
+                <td>{{ user.pin }}</td>
+                <td>{{ user.name }}</td>
+                <td>{{ user.privilege ?? '—' }}</td>
+                <td>{{ user.card ?? '—' }}</td>
+                <td>{{ user.requestedAtUtc }}</td>
+                <td>
+                  @if (user.status === 'Acked') {
+                    <span class="badge badge-success">Enrolled</span>
+                  } @else if (user.status === 'Failed') {
+                    <span class="badge badge-danger" [title]="'Return code: ' + user.returnCode">Failed</span>
+                  } @else if (user.status === 'Sent') {
+                    <span class="badge badge-warning">Sent</span>
+                  } @else {
+                    <span class="badge badge-muted">Queued</span>
+                  }
+                </td>
+                <td>{{ user.acknowledgedAtUtc ?? '—' }}</td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

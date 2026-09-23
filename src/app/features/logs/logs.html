@@ -1,0 +1,119 @@
+<div class="page">
+  <div class="page-header">
+    <div class="page-heading">
+      <span class="page-icon tone-primary">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M4 6.5h16M4 12h16M4 17.5h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+        </svg>
+      </span>
+      <div>
+        <h1>Raw Logs</h1>
+        <p class="page-subtitle">{{ filteredLogs().length }} of {{ logs().length }} shown</p>
+      </div>
+    </div>
+    <button type="button" class="btn" (click)="refresh()">Refresh</button>
+  </div>
+
+  <div class="toolbar">
+    <div class="field">
+      <label for="search">Search</label>
+      <input
+        id="search"
+        class="input"
+        type="text"
+        placeholder="serial, endpoint, table…"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+    </div>
+
+    <div class="field">
+      <label for="endpoint">Endpoint</label>
+      <select
+        id="endpoint"
+        class="select"
+        [ngModel]="endpointFilter()"
+        (ngModelChange)="endpointFilter.set($event)"
+      >
+        <option value="all">All</option>
+        @for (endpoint of endpoints(); track endpoint) {
+          <option [value]="endpoint">{{ endpoint }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="take">Fetch</label>
+      <select id="take" class="select" [ngModel]="take()" (ngModelChange)="take.set($event); refresh()">
+        <option [ngValue]="50">Last 50</option>
+        <option [ngValue]="100">Last 100</option>
+        <option [ngValue]="200">Last 200</option>
+        <option [ngValue]="500">Last 500</option>
+      </select>
+    </div>
+
+    <label class="toggle">
+      <input
+        type="checkbox"
+        [checked]="errorsOnly()"
+        (change)="errorsOnly.set(!errorsOnly())"
+      />
+      Errors only
+    </label>
+  </div>
+
+  @if (error()) {
+    <p class="error-text">{{ error() }}</p>
+  }
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Received (UTC)</th>
+          <th>Serial</th>
+          <th>Endpoint</th>
+          <th>Table</th>
+          <th>Method</th>
+          <th>Bytes</th>
+          <th>Status</th>
+          <th>Preview</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          <tr>
+            <td colspan="9" class="empty-state">Loading…</td>
+          </tr>
+        } @else if (filteredLogs().length === 0) {
+          <tr>
+            <td colspan="9" class="empty-state">No matching logs.</td>
+          </tr>
+        } @else {
+          @for (log of filteredLogs(); track log.id; let i = $index) {
+            <tr>
+              <td>{{ i + 1 }}</td>
+              <td>{{ log.receivedAtUtc }}</td>
+              <td>{{ log.serialNumber || '—' }}</td>
+              <td>{{ log.endpoint }}</td>
+              <td>{{ log.table ?? '—' }}</td>
+              <td>{{ log.method }}</td>
+              <td>{{ log.contentLength }}</td>
+              <td>
+                @if (log.processingError) {
+                  <span class="badge badge-danger" [title]="log.processingError">Error</span>
+                } @else if (log.isProcessed) {
+                  <span class="badge badge-success">Processed</span>
+                } @else {
+                  <span class="badge badge-warning">Queued</span>
+                }
+              </td>
+              <td class="preview-cell">{{ log.bodyPreview }}</td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

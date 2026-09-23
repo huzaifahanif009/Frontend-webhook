@@ -1,0 +1,181 @@
+<div class="page">
+  <div class="page-header">
+    <div class="page-heading">
+      <span class="page-icon tone-primary">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M4.5 12a7.5 7.5 0 0112.9-5.2M19.5 12a7.5 7.5 0 01-12.9 5.2M15 6h4.5V1.7M9 18h-4.5v4.3"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </span>
+      <div>
+        <h1>Re-sync</h1>
+        <p class="page-subtitle">
+          Retry rows that were skipped (e.g. a device that's now registered in ERP), or force an
+          already-synced row back through ERP sync to correct wrong data. {{ total() }} record(s)
+          match the current filter.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  @if (!unlocked()) {
+    <div class="card gate-card">
+      <app-action-password-gate
+        title="Re-sync is protected"
+        description="This screen can push corrected data back to ERP and retry skipped rows — enter the password to continue."
+        (verified)="onUnlocked()"
+      />
+    </div>
+  } @else {
+
+  <form class="toolbar" (ngSubmit)="search()">
+    <div class="field">
+      <label for="serial">Serial number</label>
+      <input id="serial" class="input" type="text" [ngModel]="serialNumber()" (ngModelChange)="serialNumber.set($event)" name="serial" />
+    </div>
+
+    <div class="field">
+      <label for="pin">Employee PIN</label>
+      <input id="pin" class="input" type="text" [ngModel]="employeePin()" (ngModelChange)="employeePin.set($event)" name="pin" />
+    </div>
+
+    <div class="field">
+      <label for="name">Employee name</label>
+      <input id="name" class="input" type="text" [ngModel]="employeeName()" (ngModelChange)="employeeName.set($event)" name="name" />
+    </div>
+
+    <div class="field">
+      <label for="verify">Verify code</label>
+      <input id="verify" class="input" type="text" [ngModel]="verifyCode()" (ngModelChange)="verifyCode.set($event)" name="verify" />
+    </div>
+
+    <div class="field">
+      <label for="status">Status code</label>
+      <input id="status" class="input" type="text" [ngModel]="statusCode()" (ngModelChange)="statusCode.set($event)" name="status" />
+    </div>
+
+    <div class="field">
+      <label for="rowState">Row status</label>
+      <select id="rowState" class="select" [ngModel]="rowState()" (ngModelChange)="rowState.set($event)" name="rowState">
+        <option value="unsynced">Skipped / not yet synced</option>
+        <option value="synced">Already synced</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="resyncStatus">Resync request status</label>
+      <select id="resyncStatus" class="select" [ngModel]="resyncStatus()" (ngModelChange)="resyncStatus.set($event)" name="resyncStatus">
+        <option value="all">All synced rows</option>
+        <option value="pending">Resync pending</option>
+        <option value="none">Not requested</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="from">From</label>
+      <input id="from" class="input" type="date" [ngModel]="fromDate()" (ngModelChange)="fromDate.set($event)" name="from" />
+    </div>
+
+    <div class="field">
+      <label for="to">To</label>
+      <input id="to" class="input" type="date" [ngModel]="toDate()" (ngModelChange)="toDate.set($event)" name="to" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Search</button>
+    <button type="button" class="btn" (click)="reset()">Reset</button>
+  </form>
+
+  <div class="actions-bar">
+    <span class="selected-count">{{ selectedIds().size }} selected</span>
+    <button type="button" class="btn btn-sm" [disabled]="selectedIds().size === 0" (click)="resyncSelected()">
+      Resync selected
+    </button>
+    <button type="button" class="btn btn-sm btn-primary" [disabled]="total() === 0" (click)="resyncAllMatching()">
+      Resync all matching ({{ total() }})
+    </button>
+    @if (actionMessage(); as msg) {
+      <span class="action-message">{{ msg }}</span>
+    }
+  </div>
+
+  @if (error()) {
+    <p class="error-text">{{ error() }}</p>
+  }
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>
+            <input type="checkbox" [checked]="allOnPageSelected()" (change)="toggleSelectAllOnPage()" />
+          </th>
+          <th>#</th>
+          <th>Device time</th>
+          <th>Serial</th>
+          <th>Employee</th>
+          <th>Verify</th>
+          <th>Status</th>
+          <th>Sync status</th>
+          <th>Resync request</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          <tr>
+            <td colspan="10" class="empty-state">Loading…</td>
+          </tr>
+        } @else if (rows().length === 0) {
+          <tr>
+            <td colspan="10" class="empty-state">No attendance records match this filter.</td>
+          </tr>
+        } @else {
+          @for (row of rows(); track row.id; let i = $index) {
+            @let status = statusOf(row);
+            <tr>
+              <td><input type="checkbox" [checked]="isSelected(row.id)" (change)="toggleSelected(row.id)" /></td>
+              <td>{{ skip() + i + 1 }}</td>
+              <td>{{ row.originalLogTime }}</td>
+              <td>{{ row.serialNumber }}</td>
+              <td>{{ row.employeeName ? row.employeeName + ' (' + row.employeePin + ')' : row.employeePin }}</td>
+              <td>{{ row.verifyCode ?? '—' }}</td>
+              <td>{{ row.statusCode ?? '—' }}</td>
+              <td>
+                <span class="badge" [class]="status.cssClass">{{ status.label }}</span>
+                @if (status.title) {
+                  <span class="skip-reason">{{ status.title }}</span>
+                }
+              </td>
+              <td>
+                @if (row.erpResyncRequestedAtUtc) {
+                  <span class="badge badge-warning">Pending</span>
+                } @else {
+                  <span class="badge badge-muted">—</span>
+                }
+              </td>
+              <td>
+                <button type="button" class="btn btn-sm" (click)="toggleSelected(row.id)">
+                  {{ isSelected(row.id) ? 'Unselect' : 'Select' }}
+                </button>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <span>{{ total() }} total</span>
+    <button type="button" class="btn btn-sm" [disabled]="skip() === 0" (click)="prevPage()">Prev</button>
+    <button type="button" class="btn btn-sm" [disabled]="skip() + pageSize() >= total()" (click)="nextPage()">
+      Next
+    </button>
+  </div>
+  }
+</div>

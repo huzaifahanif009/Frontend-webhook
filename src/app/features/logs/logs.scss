@@ -1,0 +1,8 @@
+.preview-cell {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+}

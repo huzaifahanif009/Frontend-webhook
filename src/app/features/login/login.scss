@@ -1,0 +1,101 @@
+:host {
+  display: block;
+}
+
+.brand-panel {
+  background: var(--sidebar-bg);
+}
+
+.brand-glow {
+  position: absolute;
+  top: -120px;
+  right: -140px;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.55) 0%, rgba(79, 70, 229, 0) 70%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.brand-dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to bottom, transparent, black 30%, black 75%, transparent);
+  pointer-events: none;
+}
+
+.brand-feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 999px;
+  margin-top: 1px;
+  background: rgba(79, 70, 229, 0.35);
+  color: #c7d2fe;
+}
+
+.login-input {
+  width: 100%;
+  padding: 11px 40px 11px 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13.5px;
+  font-family: inherit;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3.5px var(--primary-soft);
+}
+
+.login-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.login-submit {
+  width: 100%;
+  margin-top: 22px;
+  padding: 11px 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.15);
+}
+
+.login-submit:hover {
+  background: var(--primary-dark);
+}
+
+.login-submit:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3.5px var(--primary-soft);
+}

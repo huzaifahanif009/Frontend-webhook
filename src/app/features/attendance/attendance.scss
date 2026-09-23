@@ -1,0 +1,26 @@
+.sync-now {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sync-message {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 320px;
+}
+
+.presets {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+}

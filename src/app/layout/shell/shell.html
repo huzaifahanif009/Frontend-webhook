@@ -1,0 +1,55 @@
+<div class="shell">
+  @if (mobileSidebarOpen()) {
+    <div class="sidebar-backdrop" (click)="closeMobileSidebar()"></div>
+  }
+
+  <app-sidebar [open]="mobileSidebarOpen()" (closeRequested)="closeMobileSidebar()" />
+
+  <div class="shell-main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button
+          type="button"
+          class="menu-toggle"
+          (click)="toggleMobileSidebar()"
+          aria-label="Toggle menu"
+        >
+          <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5">
+            <path
+              d="M4 6.5h16M4 12h16M4 17.5h16"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+        <span class="topbar-title">Attendance Dashboard</span>
+      </div>
+
+      <div class="topbar-actions">
+        <app-notification-bell />
+        <div class="topbar-divider"></div>
+        <div class="account-chip">
+          <span class="account-avatar">A</span>
+          <span class="account-label">Admin</span>
+        </div>
+        <button type="button" class="logout-btn" (click)="logout()">
+          <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4">
+            <path
+              d="M9 4.5H6a1.5 1.5 0 00-1.5 1.5v12A1.5 1.5 0 006 19.5h3M15.5 16l4-4-4-4M19 12H9"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span class="hidden sm:inline">Log out</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="shell-content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

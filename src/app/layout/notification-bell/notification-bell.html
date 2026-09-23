@@ -1,0 +1,58 @@
+<div class="bell-wrap">
+  <button
+    type="button"
+    class="bell-btn"
+    [class.has-activity]="hasActivity"
+    (click)="toggle()"
+    title="ERP sync status"
+  >
+    <span class="bell-icon">🔔</span>
+    @if (hasActivity) {
+      <span class="bell-dot"></span>
+    }
+  </button>
+
+  @if (open()) {
+    <div class="bell-panel">
+      @if (progress(); as p) {
+        <div class="bell-header">
+          <strong>ERP Sync Status</strong>
+          <span class="badge" [class.badge-success]="!p.isRunning" [class.badge-warning]="p.isRunning">
+            {{ p.isRunning ? 'Syncing…' : 'Idle' }}
+          </span>
+        </div>
+
+        <dl class="bell-stats">
+          <div class="stat-row">
+            <dt>Remaining</dt>
+            <dd>{{ p.remainingCount }}</dd>
+          </div>
+          <div class="stat-row">
+            <dt>Total synced (session)</dt>
+            <dd>{{ p.totalSyncedSinceStartup }}</dd>
+          </div>
+          <div class="stat-row">
+            <dt>Total failed (session)</dt>
+            <dd>{{ p.totalFailedSinceStartup }}</dd>
+          </div>
+          <div class="stat-row">
+            <dt>Last batch</dt>
+            <dd>{{ p.lastBatch.affected }} synced / {{ p.lastBatch.skipped }} failed / {{ p.lastBatch.excluded }} excluded</dd>
+          </div>
+        </dl>
+
+        @if (p.lastError) {
+          <p class="bell-error">{{ p.lastError }}</p>
+        }
+
+        @if (p.lastRunCompletedAtUtc) {
+          <p class="bell-footer">Last run: {{ p.lastRunCompletedAtUtc }} (UTC)</p>
+        } @else {
+          <p class="bell-footer">No sync has run yet this session.</p>
+        }
+      } @else {
+        <p class="bell-loading">Loading…</p>
+      }
+    </div>
+  }
+</div>

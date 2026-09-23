@@ -1,0 +1,181 @@
+<div class="page">
+  <div class="page-header">
+    <div class="page-heading">
+      <span class="page-icon tone-primary">
+        <svg viewBox="0 0 24 24" fill="none">
+          <rect x="3.5" y="4" width="17" height="6.5" rx="1.8" stroke="currentColor" stroke-width="1.7" />
+          <rect x="3.5" y="13.5" width="17" height="6.5" rx="1.8" stroke="currentColor" stroke-width="1.7" />
+          <circle cx="7" cy="7.25" r="0.9" fill="currentColor" />
+          <circle cx="7" cy="16.75" r="0.9" fill="currentColor" />
+        </svg>
+      </span>
+      <div>
+        <h1>Devices</h1>
+        <p class="page-subtitle">{{ devices().length }} device(s) listed · status refreshes every 20s</p>
+      </div>
+    </div>
+    <button type="button" class="btn" (click)="refresh()">Refresh</button>
+  </div>
+
+  <div class="toolbar">
+    <label class="toggle">
+      <input type="checkbox" [checked]="registeredOnly()" (change)="toggleRegisteredOnly()" />
+      Registered only
+    </label>
+  </div>
+
+  @if (error()) {
+    <p class="error-text">{{ error() }}</p>
+  }
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Serial</th>
+          <th>Status</th>
+          <th>Client</th>
+          <th>Entity</th>
+          <th>Last activity (UTC)</th>
+          <th>Last known IP</th>
+          <th>Firmware</th>
+          <th>Registered</th>
+          <th>Recover attendance</th>
+          <th class="sticky-col">ERP sync</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          <tr>
+            <td colspan="11" class="empty-state">Loading…</td>
+          </tr>
+        } @else if (devices().length === 0) {
+          <tr>
+            <td colspan="11" class="empty-state">No devices found.</td>
+          </tr>
+        } @else {
+          @for (device of devices(); track device.serialNumber; let i = $index) {
+            <tr>
+              <td>{{ i + 1 }}</td>
+              <td>{{ device.serialNumber }}</td>
+              <td>
+                @if (device.isOnline === true) {
+                  <span class="badge badge-success">Online</span>
+                } @else if (device.isOnline === false) {
+                  <span class="badge badge-danger">Offline</span>
+                } @else {
+                  <span class="badge badge-muted">Unregistered</span>
+                }
+              </td>
+              <td>{{ device.clientName ?? '—' }}</td>
+              <td>{{ device.entityName ?? '—' }}</td>
+              <td>{{ device.lastActivityUtc ?? device.lastSeenUtc }}</td>
+              <td>{{ device.lastKnownIp ?? '—' }}</td>
+              <td>{{ device.firmwareVersion ?? '—' }}</td>
+              <td>{{ device.isRegistered ? 'Yes' : 'No' }}</td>
+              <td>
+                <button type="button" class="btn btn-sm" (click)="openRecovery(device.serialNumber)">
+                  Recover…
+                </button>
+              </td>
+              <td class="sticky-col">
+                @if (device.syncEnabled) {
+                  <button type="button" class="btn btn-sm btn-sync-on" (click)="toggleSync(device)">
+                    ● Syncing — Stop
+                  </button>
+                } @else {
+                  <button type="button" class="btn btn-sm btn-sync-off" (click)="toggleSync(device)">
+                    ○ Stopped — Start
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (recoverySerial(); as serial) {
+    <div class="recovery-backdrop" (click)="closeRecovery()">
+      <div class="recovery-panel" (click)="$event.stopPropagation()">
+        @if (!recoveryUnlocked()) {
+          <app-action-password-gate
+            title="Recover missed attendance — {{ serial }}"
+            description="This sends a live command to the device — enter the password to continue."
+            (verified)="onRecoveryUnlocked()"
+          />
+          <div class="recovery-actions">
+            <button type="button" class="btn" (click)="closeRecovery()">Cancel</button>
+          </div>
+        } @else {
+          <h3>Recover missed attendance — {{ serial }}</h3>
+          <p class="recovery-hint">
+            Asks the device to resend its stored attendance log for this window — use this to
+            recover punches that never reached the server (e.g. during an outage). Only works for
+            standard ADMS devices, and depends on the device actually retaining local history for
+            that period.
+          </p>
+
+          <div class="recovery-fields">
+            <div class="field">
+              <label for="recoveryFrom">From</label>
+              <input
+                id="recoveryFrom"
+                class="input"
+                type="datetime-local"
+                [ngModel]="recoveryFrom()"
+                (ngModelChange)="recoveryFrom.set($event)"
+                name="recoveryFrom"
+              />
+            </div>
+            <div class="field">
+              <label for="recoveryTo">To</label>
+              <input
+                id="recoveryTo"
+                class="input"
+                type="datetime-local"
+                [ngModel]="recoveryTo()"
+                (ngModelChange)="recoveryTo.set($event)"
+                name="recoveryTo"
+              />
+            </div>
+          </div>
+
+          @if (recoveryMessage(); as msg) {
+            <p class="success-text">{{ msg }}</p>
+          }
+          @if (recoveryError(); as err) {
+            <p class="error-text">{{ err }}</p>
+          }
+
+          <div class="recovery-actions">
+            <button type="button" class="btn" (click)="closeRecovery()">Close</button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="recoverySubmitting() || !recoveryFrom() || !recoveryTo()"
+              (click)="submitRecovery()"
+            >
+              {{ recoverySubmitting() ? 'Requesting…' : 'Request' }}
+            </button>
+          </div>
+
+          @if (recoveryHistory().length > 0) {
+            <div class="recovery-history">
+              <span class="recovery-history-title">Requested this session</span>
+              @for (entry of recoveryHistory(); track entry.requestedAt) {
+                <div class="recovery-history-row">
+                  <span class="recovery-history-serial">{{ entry.serialNumber }}</span>
+                  <span class="recovery-history-range">{{ entry.fromUtc }} → {{ entry.toUtc }}</span>
+                  <span class="recovery-history-message">{{ entry.message }}</span>
+                </div>
+              }
+            </div>
+          }
+        }
+      </div>
+    </div>
+  }
+</div>
