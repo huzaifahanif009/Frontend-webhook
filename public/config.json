@@ -1,0 +1,7 @@
+{
+  "apiBaseUrl": "http://localhost:5080",
+  "apiKey": "",
+  "loginPassword": "admin123",
+  "showResyncScreen": true,
+  "actionPassword": "admin12345"
+}
