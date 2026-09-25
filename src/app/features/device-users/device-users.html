@@ -115,17 +115,73 @@
     <div class="card upload-card">
       <h3>Bulk upload — {{ selectedSerial() }}</h3>
       <p class="upload-hint">
-        Upload a <strong>.dat</strong> file exported from a device's own USB backup, or a
-        <strong>.csv</strong> file with a header row of <code>Pin, Name, Privilege, Card</code>
-        (Privilege and Card are optional). Nothing is imported until you review the list below and
-        click Import — this creates user profiles only, the same as the single form above;
-        fingerprint/face enrollment still has to happen at the terminal.
+        Nothing is imported until you review the list below and click Import — this creates user
+        profiles only, the same as the single form above; fingerprint/face enrollment still has to
+        happen at the terminal.
       </p>
+
+      <div class="upload-format-picker">
+        <span class="upload-format-label">File type</span>
+        <label class="format-option">
+          <input
+            type="radio"
+            name="uploadFormat"
+            [checked]="uploadFormat() === 'xlsx'"
+            (change)="selectUploadFormat('xlsx')"
+          />
+          Excel (.xlsx)
+        </label>
+        <label class="format-option">
+          <input
+            type="radio"
+            name="uploadFormat"
+            [checked]="uploadFormat() === 'dat'"
+            (change)="selectUploadFormat('dat')"
+          />
+          Device export (.dat)
+        </label>
+        <label class="format-option">
+          <input
+            type="radio"
+            name="uploadFormat"
+            [checked]="uploadFormat() === 'csv'"
+            (change)="selectUploadFormat('csv')"
+          />
+          CSV (.csv)
+        </label>
+      </div>
+
+      @switch (uploadFormat()) {
+        @case ('xlsx') {
+          <p class="upload-hint">
+            A spreadsheet with a header row of <code>Pin, Name, Privilege, Card</code> (Privilege
+            and Card are optional; "Id" is also accepted in place of "Pin").
+            <button type="button" class="btn-link" [disabled]="downloadingTemplate()" (click)="downloadTemplate('xlsx')">
+              {{ downloadingTemplate() ? 'Downloading…' : 'Download Excel template' }}
+            </button>
+          </p>
+        }
+        @case ('csv') {
+          <p class="upload-hint">
+            A plain-text file with a header row of <code>Pin, Name, Privilege, Card</code>
+            (Privilege and Card are optional).
+            <button type="button" class="btn-link" [disabled]="downloadingTemplate()" (click)="downloadTemplate('csv')">
+              {{ downloadingTemplate() ? 'Downloading…' : 'Download CSV template' }}
+            </button>
+          </p>
+        }
+        @case ('dat') {
+          <p class="upload-hint">
+            The raw backup file exported from this device's own USB/menu backup feature — not
+            something you hand-fill, so no template applies here.
+          </p>
+        }
+      }
 
       <div class="upload-controls">
         <label class="btn upload-choose">
           Choose file…
-          <input type="file" accept=".dat,.csv" (change)="onFileSelected($event)" hidden />
+          <input type="file" [attr.accept]="uploadAccept" (change)="onFileSelected($event)" hidden />
         </label>
         @if (fileName()) {
           <span class="upload-filename">{{ fileName() }}</span>

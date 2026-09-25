@@ -88,4 +88,10 @@ export class DeviceService {
       rows
     );
   }
+
+  /** Downloads the blank Pin/Name/Privilege/Card template for a bulk-user upload format. Goes
+   * through HttpClient (not a plain link) so the API-key interceptor still attaches. */
+  downloadUserTemplate(format: 'xlsx' | 'csv'): Observable<Blob> {
+    return this.http.get(`${this.base}/user-templates/${format}`, { responseType: 'blob' });
+  }
 }

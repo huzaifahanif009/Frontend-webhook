@@ -7,7 +7,14 @@ import { AdmsDevice } from '../../core/models/device.model';
 import { BulkUserImportRowResult, DeviceUserStatus } from '../../core/models/device-user.model';
 
 const REFRESH_INTERVAL_MS = 15000;
-const SUPPORTED_EXTENSIONS = ['.dat', '.csv'];
+
+type UploadFormat = 'xlsx' | 'dat' | 'csv';
+
+const FORMAT_EXTENSIONS: Record<UploadFormat, string> = {
+  xlsx: '.xlsx',
+  dat: '.dat',
+  csv: '.csv'
+};
 
 interface EditableBulkRow {
   pin: string;
@@ -47,12 +54,14 @@ export class DeviceUsers implements OnInit {
   protected readonly formSuccess = signal<string | null>(null);
 
   // Bulk upload — parse-then-review-then-import, never skips the review step.
+  protected readonly uploadFormat = signal<UploadFormat>('xlsx');
   protected readonly fileName = signal<string | null>(null);
   protected readonly parsing = signal(false);
   protected readonly parseError = signal<string | null>(null);
   protected readonly previewRows = signal<EditableBulkRow[]>([]);
   protected readonly importing = signal(false);
   protected readonly importSummary = signal<{ succeeded: number; failed: number } | null>(null);
+  protected readonly downloadingTemplate = signal(false);
 
   ngOnInit(): void {
     this.deviceService.getDevices(true, 500).subscribe({
@@ -158,6 +167,34 @@ export class DeviceUsers implements OnInit {
       });
   }
 
+  protected selectUploadFormat(format: UploadFormat): void {
+    this.uploadFormat.set(format);
+    this.clearUpload();
+  }
+
+  protected get uploadAccept(): string {
+    return FORMAT_EXTENSIONS[this.uploadFormat()];
+  }
+
+  protected downloadTemplate(format: 'xlsx' | 'csv'): void {
+    this.downloadingTemplate.set(true);
+    this.deviceService.downloadUserTemplate(format).subscribe({
+      next: (blob) => {
+        this.downloadingTemplate.set(false);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `bulk-user-template.${format}`;
+        link.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.downloadingTemplate.set(false);
+        this.parseError.set('Could not download the template.');
+      }
+    });
+  }
+
   protected onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
@@ -169,9 +206,10 @@ export class DeviceUsers implements OnInit {
     }
 
     const extension = '.' + (file.name.split('.').pop() ?? '').toLowerCase();
-    if (!SUPPORTED_EXTENSIONS.includes(extension)) {
+    const expected = FORMAT_EXTENSIONS[this.uploadFormat()];
+    if (extension !== expected) {
       this.parseError.set(
-        `Unsupported file type '${extension}'. Supported: .dat (device USB export) or .csv (header row: Pin, Name, Privilege, Card).`
+        `This file is '${extension}', but '${expected}' is selected above. Pick the matching file type, or choose the file type that matches this file.`
       );
       return;
     }
